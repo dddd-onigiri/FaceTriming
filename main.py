@@ -1,19 +1,34 @@
-import streamlit as st
 import cv2
+import numpy as np
+import streamlit as st
 
-uploaded_file = st.file_uploader("Choose an image...", type="jpg")
+# 画像をアップロードする
+uploaded_file = st.file_uploader("生徒証用の顔写真を選択してください", type="jpg")
+
 if uploaded_file is not None:
-    image = cv2.imread(uploaded_file)
-    st.image(image, caption='Uploaded Image.', use_column_width=True)
+    # 画像を読み込む
+    image = cv2.imdecode(np.fromstring(uploaded_file.read(), np.uint8), 1)
 
-# 顔検出
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+    # グレースケールに変換する
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-# 顔をトリミング
-for (x,y,w,h) in faces:
-    cropped_face = image[y:y+h, x:x+w]
+    # 顔の検出器を初期化する
+    face_cascade = cv2.CascadeClassifier(
+        cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-# トリミングされた顔を表示
-st.image(cropped_face, caption='Cropped Image.', use_column_width=True)
+    # 顔を検出する
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5,
+                                          minSize=(30, 30),
+                                          flags=cv2.CASCADE_SCALE_IMAGE)
+
+    # 検出された顔が1つ以上ある場合
+    if len(faces) > 0:
+        # 最初の顔をトリミングする
+        (x, y, w, h) = faces[0]
+        cropped_image = image[y:y + h, x:x + w]
+
+        # トリミングされた画像を表示する
+        st.image(cropped_image, caption='Cropped Image', use_column_width=True)
+
+    else:
+        st.write("顔が検出されませんでした。")
